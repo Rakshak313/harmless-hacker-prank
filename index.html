@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <title>System Access Terminal v3.7.1</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="screen" class="screen">
+    <!-- CRT Effects -->
+    <div class="scanlines"></div>
+    <div class="scanline-bar"></div>
+    <div class="vignette"></div>
+
+    <!-- Terminal -->
+    <div id="terminal" class="terminal">
+      <div id="output" class="output"></div>
+      <div class="input-line" id="inputLine">
+        <span class="prompt" id="promptText">root@target:~$ </span>
+        <span id="typedCommand" class="typed-command"></span>
+        <span class="cursor">_</span>
+      </div>
+    </div>
+
+    <!-- Corner Decorations -->
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-left">SSH SESSION ACTIVE</span>
+      <span class="status-right" id="statusTime"></span>
+    </div>
+
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle" title="Toggle sound">🔊</button>
+
+    <!-- Prank Reveal Overlay -->
+    <div id="overlay" class="overlay hidden">
+      <div class="caught-box">
+        <div class="skull">💀</div>
+        <h1>YOU GOT PRANKED 😂</h1>
+        <p class="prank-reveal">This was a prank the whole time!</p>
+        <div class="divider"></div>
+        <p class="subtext">
+          No data was collected. No files were touched.<br>
+          No network requests were made. No devices were accessed.<br>
+          This is just a fun little terminal animation.<br>
+          <strong>You're safe! 😄</strong>
+        </p>
+        <button id="replayBtn" class="replay-btn">⟳ Run it again</button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,497 @@
+/* ============================================================
+   HARMLESS HACKER PRANK TERMINAL — Stylesheet
+   ============================================================ */
+
+/* --- Reset --- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: #000;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+  color: #00ff41;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- Screen Container --- */
+.screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* dynamic viewport height for mobile */
+  background: #0a0a0a;
+  overflow: hidden;
+  animation: flicker 8s infinite;
+}
+
+/* --- CRT Scanlines Overlay --- */
+.scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 0, 0, 0.15) 1px,
+    rgba(0, 0, 0, 0.15) 2px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Moving scanline bar */
+.scanline-bar {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 65, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 100% 200%;
+  animation: scanlineMove 6s linear infinite;
+  pointer-events: none;
+  z-index: 11;
+}
+
+/* Vignette (darkened edges) */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.65) 100%
+  );
+  pointer-events: none;
+  z-index: 12;
+}
+
+@keyframes scanlineMove {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 0% 200%; }
+}
+
+/* --- Corner Decorations --- */
+.corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: rgba(0, 255, 65, 0.4);
+  border-style: solid;
+  z-index: 13;
+}
+.corner.tl { top: 8px; left: 8px; border-width: 2px 0 0 2px; }
+.corner.tr { top: 8px; right: 8px; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: 8px; left: 8px; border-width: 0 0 2px 2px; }
+.corner.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; }
+
+/* --- Status Bar --- */
+.status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: rgba(0, 255, 65, 0.08);
+  border-top: 1px solid rgba(0, 255, 65, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  font-size: 11px;
+  color: rgba(0, 255, 65, 0.5);
+  z-index: 14;
+  letter-spacing: 0.5px;
+}
+
+.status-left {
+  text-transform: uppercase;
+}
+
+.status-right {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Sound Toggle Button --- */
+.sound-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 255, 65, 0.08);
+  border: 1px solid rgba(0, 255, 65, 0.25);
+  border-radius: 4px;
+  color: #00ff41;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  line-height: 1;
+}
+.sound-toggle:hover {
+  background: rgba(0, 255, 65, 0.18);
+}
+.sound-toggle.muted {
+  opacity: 0.4;
+}
+
+/* --- Terminal Container --- */
+.terminal {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 36px; /* room for status bar */
+  padding: 16px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.55;
+  z-index: 5;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 65, 0.3) transparent;
+}
+
+.terminal::-webkit-scrollbar {
+  width: 5px;
+}
+.terminal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.terminal::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 65, 0.3);
+  border-radius: 3px;
+}
+
+/* --- Output Lines --- */
+.output .line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: lineIn 0.08s ease-out;
+}
+
+.output .line.prompt-line {
+  color: #00ff41;
+  text-shadow: 0 0 4px rgba(0, 255, 65, 0.3);
+}
+
+.output .line.system {
+  color: #00bb33;
+}
+
+.output .line.warning {
+  color: #ffcc00;
+  text-shadow: 0 0 6px rgba(255, 204, 0, 0.3);
+}
+
+.output .line.error {
+  color: #ff3333;
+  text-shadow: 0 0 6px rgba(255, 51, 51, 0.3);
+}
+
+.output .line.success {
+  color: #33ff99;
+  text-shadow: 0 0 6px rgba(51, 255, 153, 0.4);
+}
+
+.output .line.header {
+  color: #00ff41;
+  text-shadow: 0 0 12px rgba(0, 255, 65, 0.7);
+  font-weight: bold;
+}
+
+.output .line.info {
+  color: #5599ff;
+}
+
+.output .line.dim {
+  color: #2a4a2a;
+}
+
+.output .line.highlight {
+  color: #ff66ff;
+  text-shadow: 0 0 8px rgba(255, 102, 255, 0.4);
+}
+
+.output .line.big-red {
+  color: #ff3333;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+}
+
+@keyframes lineIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Input Line --- */
+.input-line {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.input-line.visible {
+  opacity: 1;
+}
+
+.prompt {
+  color: #00ff41;
+  flex-shrink: 0;
+  text-shadow: 0 0 4px rgba(0, 255, 65, 0.3);
+}
+
+.typed-command {
+  color: #ffffff;
+}
+
+.cursor {
+  color: #00ff41;
+  animation: blink 0.65s step-end infinite;
+  margin-left: 1px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* --- Glitch Effect (applied via JS class) --- */
+.screen.glitch {
+  animation: glitch 0.15s linear 3;
+}
+
+@keyframes glitch {
+  0%   { transform: translate(0); filter: hue-rotate(0deg); }
+  20%  { transform: translate(-3px, 2px); filter: hue-rotate(90deg); }
+  40%  { transform: translate(3px, -1px); filter: hue-rotate(180deg); }
+  60%  { transform: translate(-1px, -2px); filter: hue-rotate(270deg); }
+  80%  { transform: translate(2px, 3px); filter: hue-rotate(360deg); }
+  100% { transform: translate(0); filter: hue-rotate(0deg); }
+}
+
+/* --- Screen Flicker --- */
+@keyframes flicker {
+  0%   { opacity: 1; }
+  3%   { opacity: 0.88; }
+  6%   { opacity: 1; }
+  7%   { opacity: 0.92; }
+  9%   { opacity: 1; }
+  55%  { opacity: 1; }
+  56%  { opacity: 0.94; }
+  57%  { opacity: 1; }
+  90%  { opacity: 1; }
+  91%  { opacity: 0.88; }
+  92%  { opacity: 1; }
+}
+
+/* --- Overlay (Prank Reveal) --- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.93);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.4s ease-out;
+}
+.overlay.hidden {
+  display: none;
+}
+
+.caught-box {
+  text-align: center;
+  padding: 36px 28px;
+  border: 2px solid #00ff41;
+  border-radius: 6px;
+  max-width: 460px;
+  width: 90%;
+  box-shadow:
+    0 0 40px rgba(0, 255, 65, 0.15),
+    inset 0 0 40px rgba(0, 255, 65, 0.03);
+  animation: boxAppear 0.5s ease-out;
+}
+
+@keyframes boxAppear {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.skull {
+  font-size: 56px;
+  margin-bottom: 8px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.caught-box h1 {
+  color: #ff4444;
+  font-size: clamp(22px, 5vw, 32px);
+  margin-bottom: 10px;
+  text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+}
+
+.prank-reveal {
+  color: #00ff41;
+  font-size: clamp(15px, 3vw, 19px);
+  margin-bottom: 14px;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+}
+
+.divider {
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.4), transparent);
+  margin: 14px auto;
+}
+
+.subtext {
+  color: #888;
+  font-size: clamp(11px, 2.5vw, 13px);
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+.subtext strong {
+  color: #00ff41;
+}
+
+.replay-btn {
+  background: transparent;
+  color: #00ff41;
+  border: 1px solid rgba(0, 255, 65, 0.5);
+  padding: 10px 28px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  border-radius: 3px;
+}
+.replay-btn:hover {
+  background: #00ff41;
+  color: #000;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+.replay-btn:active {
+  transform: scale(0.97);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+/* Tablets & small desktops */
+@media (max-width: 768px) {
+  .terminal {
+    font-size: 12px;
+    padding: 12px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 32px;
+  }
+
+  .corner { width: 18px; height: 18px; }
+
+  .status-bar { height: 24px; font-size: 10px; }
+
+  .sound-toggle {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
+/* Phones */
+@media (max-width: 480px) {
+  .terminal {
+    font-size: 11px;
+    line-height: 1.45;
+    padding: 8px;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 28px;
+  }
+
+  .corner { display: none; }
+
+  .status-bar {
+    height: 22px;
+    font-size: 9px;
+    padding: 0 8px;
+  }
+
+  .sound-toggle {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    top: 6px;
+    right: 6px;
+  }
+
+  .caught-box {
+    padding: 24px 16px;
+  }
+
+  .skull { font-size: 44px; }
+
+  .replay-btn {
+    padding: 8px 20px;
+    font-size: 13px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 320px) {
+  .terminal {
+    font-size: 10px;
+    padding: 6px;
+  }
+
+  .input-line {
+    font-size: 10px;
+  }
+}
+
+/* Landscape phones — use more horizontal space */
+@media (max-height: 420px) and (orientation: landscape) {
+  .terminal {
+    font-size: 11px;
+    line-height: 1.35;
+    padding: 6px 10px;
+    bottom: 26px;
+  }
+  .status-bar { height: 22px; }
+  .caught-box { padding: 16px; }
+  .skull { font-size: 36px; }
+}
+
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .screen { animation: none; }
+  .scanline-bar { animation: none; }
+  .output .line { animation: none; }
+  .caught-box { animation: none; }
+  .skull { animation: none; }
+}
