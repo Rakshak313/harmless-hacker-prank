@@ -38,6 +38,7 @@
   var prankStartTime = 0; // absolute timestamp when prank started
   var escapeCleanupTimer = null;
   var beforeunloadHandler = null;
+  var popstateHandler = null;
 
   // ── Persistence (localStorage, 5-minute window) ─────────
 
@@ -130,6 +131,16 @@
     }
   }
 
+  // Back-button guard: push a history entry so popstate fires on Back,
+  // then re-push to keep the user on the prank page. Expires with the lock.
+  function onPopState() {
+    if (!isPrankActive()) return;
+    // User pressed Back — push the state back to prevent navigation
+    try {
+      history.pushState({ prank: true }, '');
+    } catch (e) { /* some browsers may restrict this — ignore */ }
+  }
+
   // Install all escape-resistance handlers
   function activateEscapeResistance(startTime) {
     prankStartTime = startTime || Date.now();
@@ -147,6 +158,16 @@
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('blur', onBlur);
     window.addEventListener('focus', onFocus);
+
+    // Back-button guard via History API
+    // Push a state so that Back triggers popstate (instead of navigating away)
+    if (!popstateHandler) {
+      try {
+        history.pushState({ prank: true }, '');
+      } catch (e) { /* ignore */ }
+      popstateHandler = onPopState;
+      window.addEventListener('popstate', popstateHandler);
+    }
 
     // Request fullscreen (requires user gesture — called from click handlers)
     // Will be called from the first user interaction after activation.
@@ -176,6 +197,12 @@
     window.removeEventListener('pagehide', onPageHide);
     window.removeEventListener('blur', onBlur);
     window.removeEventListener('focus', onFocus);
+
+    // Remove back-button guard
+    if (popstateHandler) {
+      window.removeEventListener('popstate', popstateHandler);
+      popstateHandler = null;
+    }
   }
 
   // ── Local Sound Engine (Web Audio API — no network) ───────
