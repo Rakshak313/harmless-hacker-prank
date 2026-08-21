@@ -45,6 +45,7 @@
   var PERSIST_KEY     = 'harmless_prank_ts';
   var PERSIST_MS      = 300000; // 5 minutes
   var ESCAPE_LOCK_MS  = 300000; // 5-minute escape-resistance window
+  var PRANK_GUARD     = '__prank_guard__'; // history.state marker for back-button guard
 
   function savePrankState() {
     try { localStorage.setItem(PERSIST_KEY, String(Date.now())); } catch (e) { /* quota or private mode — ignore */ }
@@ -131,14 +132,18 @@
     }
   }
 
-  // Back-button guard: push a history entry so popstate fires on Back,
-  // then re-push to keep the user on the prank page. Expires with the lock.
+  // Back-button guard: when Back is pressed during the active period,
+  // snap forward to the guard entry so the user stays on the prank page.
+  // Uses history.go(1) instead of pushState to avoid unbounded history growth.
   function onPopState() {
     if (!isPrankActive()) return;
-    // User pressed Back — push the state back to prevent navigation
+    // If already on the guard entry, nothing to do
+    var st = history.state;
+    if (st && st[PRANK_GUARD]) return;
+    // Snap forward to the guard entry
     try {
-      history.pushState({ prank: true }, '');
-    } catch (e) { /* some browsers may restrict this — ignore */ }
+      history.go(1);
+    } catch (e) { /* ignore */ }
   }
 
   // Install all escape-resistance handlers
@@ -160,10 +165,17 @@
     window.addEventListener('focus', onFocus);
 
     // Back-button guard via History API
-    // Push a state so that Back triggers popstate (instead of navigating away)
+    // Establish a guard entry so Back triggers popstate instead of navigating away.
+    // When Back is pressed, onPopState snaps forward to this guard entry.
     if (!popstateHandler) {
       try {
-        history.pushState({ prank: true }, '');
+        // Mark the current entry as a guard (so we can detect it)
+        var curState = history.state;
+        if (!curState || !curState[PRANK_GUARD]) {
+          history.replaceState((function () { var o = {}; o[PRANK_GUARD] = true; return o; })(), '');
+        }
+        // Push an extra entry so Back fires popstate (instead of leaving the page)
+        history.pushState((function () { var o = {}; o[PRANK_GUARD] = true; return o; })(), '');
       } catch (e) { /* ignore */ }
       popstateHandler = onPopState;
       window.addEventListener('popstate', popstateHandler);
