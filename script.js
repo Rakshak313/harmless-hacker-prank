@@ -35,11 +35,15 @@
   var soundEnabled = true;
   var audioCtx = null;
   var sequenceRunning = false;
+  var prankStartTime = 0; // absolute timestamp when prank started
+  var escapeCleanupTimer = null;
+  var beforeunloadHandler = null;
 
   // ── Persistence (localStorage, 5-minute window) ─────────
 
-  var PERSIST_KEY = 'harmless_prank_ts';
-  var PERSIST_MS  = 300000; // 5 minutes
+  var PERSIST_KEY     = 'harmless_prank_ts';
+  var PERSIST_MS      = 300000; // 5 minutes
+  var ESCAPE_LOCK_MS  = 300000; // 5-minute escape-resistance window
 
   function savePrankState() {
     try { localStorage.setItem(PERSIST_KEY, String(Date.now())); } catch (e) { /* quota or private mode — ignore */ }
@@ -59,6 +63,119 @@
 
   function clearPrankState() {
     try { localStorage.removeItem(PERSIST_KEY); } catch (e) { /* ignore */ }
+  }
+
+  // ── Escape Resistance (browser-compatible, 5-min lock) ──
+  // Uses only standard browser APIs: visibilitychange, pagehide,
+  // blur/focus, beforeunload, and the Fullscreen API.
+  // Does NOT use infinite loops, popups, forced reloads, or
+  // anything that interferes with the OS or Task Manager.
+
+  function isPrankActive() {
+    return prankStartTime > 0 && Date.now() - prankStartTime < ESCAPE_LOCK_MS;
+  }
+
+  function remainingMs() {
+    if (!isPrankActive()) return 0;
+    return ESCAPE_LOCK_MS - (Date.now() - prankStartTime);
+  }
+
+  // Fullscreen: request once on user gesture, re-request if browser
+  // allows it when the user returns. Stops after the lock expires.
+  function requestFullscreenIfAllowed() {
+    if (!isPrankActive()) return;
+    try {
+      var el = document.documentElement;
+      var r = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (r) r.call(el);
+    } catch (e) { /* browser may reject — that's fine */ }
+  }
+
+  // Event handlers installed during the active period
+  function onVisibilityChange() {
+    if (!isPrankActive()) return;
+    if (document.visibilityState === 'visible') {
+      // User returned — restore prank state, re-request fullscreen
+      restorePrankState();
+      requestFullscreenIfAllowed();
+    }
+  }
+
+  function onPageHide() {
+    // Page is being hidden/unloaded — persist state for return
+    if (isPrankActive()) savePrankState();
+  }
+
+  function onBlur() {
+    if (!isPrankActive()) return;
+    // Window lost focus — persist state in case user navigates away
+    savePrankState();
+  }
+
+  function onFocus() {
+    if (!isPrankActive()) return;
+    // Window regained focus — restore if needed, re-request fullscreen
+    restorePrankState();
+    requestFullscreenIfAllowed();
+  }
+
+  // Restore prank state when returning within the active window
+  function restorePrankState() {
+    if (!isPrankActive()) return;
+    // Ensure the reveal overlay is visible (the end state of the prank)
+    if (overlay.classList.contains('hidden')) {
+      output.innerHTML = '';
+      hideInput();
+      overlay.classList.remove('hidden');
+    }
+  }
+
+  // Install all escape-resistance handlers
+  function activateEscapeResistance(startTime) {
+    prankStartTime = startTime || Date.now();
+
+    // beforeunload: standard browser leave warning (only during active period)
+    beforeunloadHandler = function (e) {
+      if (!isPrankActive()) return;
+      e.preventDefault();
+      e.returnValue = ''; // Required for Chrome
+    };
+    window.addEventListener('beforeunload', beforeunloadHandler);
+
+    // Visibility, focus, page visibility
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+
+    // Request fullscreen (requires user gesture — called from click handlers)
+    // Will be called from the first user interaction after activation.
+
+    // Schedule cleanup after the lock expires
+    clearTimeout(escapeCleanupTimer);
+    var msLeft = remainingMs();
+    if (msLeft > 0) {
+      escapeCleanupTimer = setTimeout(deactivateEscapeResistance, msLeft + 1000);
+    }
+
+    // Persist start time for tab-close/return scenarios
+    savePrankState();
+  }
+
+  // Remove all escape-resistance handlers
+  function deactivateEscapeResistance() {
+    clearTimeout(escapeCleanupTimer);
+    escapeCleanupTimer = null;
+    prankStartTime = 0;
+
+    if (beforeunloadHandler) {
+      window.removeEventListener('beforeunload', beforeunloadHandler);
+      beforeunloadHandler = null;
+    }
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    window.removeEventListener('pagehide', onPageHide);
+    window.removeEventListener('blur', onBlur);
+    window.removeEventListener('focus', onFocus);
   }
 
   // ── Local Sound Engine (Web Audio API — no network) ───────
@@ -214,6 +331,7 @@
 
     // Persist the start timestamp so a reload within 5 min restores the reveal
     savePrankState();
+    activateEscapeResistance(Date.now());
 
     // Reset everything
     output.innerHTML = '';
@@ -481,7 +599,8 @@
     await sleep(300);
     overlay.classList.remove('hidden');
     sequenceRunning = false;
-    // State stays in localStorage; expires naturally after 5 min via loadPrankState()
+    // Escape resistance remains active until the 5-min lock expires.
+    // deactivateEscapeResistance() will clean up all handlers.
   }
 
   // ── Sound Toggle ──────────────────────────────────────────
@@ -490,11 +609,15 @@
     soundEnabled = !soundEnabled;
     soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
     soundBtn.classList.toggle('muted', !soundEnabled);
+    // First user click — attempt fullscreen if prank is active
+    requestFullscreenIfAllowed();
   });
 
   // ── Replay Button ─────────────────────────────────────────
 
   replayBtn.addEventListener('click', function () {
+    // First user click — attempt fullscreen if prank is active
+    requestFullscreenIfAllowed();
     runSequence();
   });
 
@@ -507,10 +630,12 @@
 
   var persistedTs = loadPrankState();
   if (persistedTs !== null) {
-    // Prank is within the 5-minute window — skip to the reveal
+    // Prank is within the 5-minute window — restore state and
+    // re-activate escape resistance with the original start time
     output.innerHTML = '';
     hideInput();
     overlay.classList.remove('hidden');
+    activateEscapeResistance(persistedTs);
   } else {
     runSequence();
   }
