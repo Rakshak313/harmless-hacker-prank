@@ -36,6 +36,31 @@
   var audioCtx = null;
   var sequenceRunning = false;
 
+  // ── Persistence (localStorage, 5-minute window) ─────────
+
+  var PERSIST_KEY = 'harmless_prank_ts';
+  var PERSIST_MS  = 300000; // 5 minutes
+
+  function savePrankState() {
+    try { localStorage.setItem(PERSIST_KEY, String(Date.now())); } catch (e) { /* quota or private mode — ignore */ }
+  }
+
+  function loadPrankState() {
+    try {
+      var raw = localStorage.getItem(PERSIST_KEY);
+      if (!raw) return null;
+      var ts = Number(raw);
+      if (isNaN(ts)) { clearPrankState(); return null; }
+      if (Date.now() - ts < PERSIST_MS) return ts;
+      clearPrankState();
+      return null;
+    } catch (e) { return null; }
+  }
+
+  function clearPrankState() {
+    try { localStorage.removeItem(PERSIST_KEY); } catch (e) { /* ignore */ }
+  }
+
   // ── Local Sound Engine (Web Audio API — no network) ───────
 
   function getAudioCtx() {
@@ -186,6 +211,9 @@
   async function runSequence() {
     if (sequenceRunning) return;
     sequenceRunning = true;
+
+    // Persist the start timestamp so a reload within 5 min restores the reveal
+    savePrankState();
 
     // Reset everything
     output.innerHTML = '';
@@ -453,6 +481,7 @@
     await sleep(300);
     overlay.classList.remove('hidden');
     sequenceRunning = false;
+    // State stays in localStorage; expires naturally after 5 min via loadPrankState()
   }
 
   // ── Sound Toggle ──────────────────────────────────────────
@@ -474,8 +503,16 @@
   updateClock();
   setInterval(updateClock, 1000);
 
-  // ── Start ─────────────────────────────────────────────────
+  // ── Restore or Start ───────────────────────────────────────
 
-  runSequence();
+  var persistedTs = loadPrankState();
+  if (persistedTs !== null) {
+    // Prank is within the 5-minute window — skip to the reveal
+    output.innerHTML = '';
+    hideInput();
+    overlay.classList.remove('hidden');
+  } else {
+    runSequence();
+  }
 
 })();
